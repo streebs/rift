@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { check } from '@tauri-apps/plugin-updater';
+// import { relaunch } from '@tauri-apps/plugin-process';
 
 const greetMsg = ref("");
 const name = ref("");
@@ -9,39 +11,73 @@ async function greet() {
   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
   greetMsg.value = await invoke("greet", { name: name.value });
 }
+
+async function check_update() {
+  const update = await check();
+  if (update) {
+    console.log(
+      `found update ${update.version} from ${update.date} with notes ${update.body}`
+    );
+    let downloaded = 0;
+    let contentLength = 0;
+    // alternatively we could also call update.download() and update.install() separately
+    await update.downloadAndInstall((event) => {
+      switch (event.event) {
+        case 'Started':
+          contentLength = event.data.contentLength;
+          console.log(`started downloading ${event.data.contentLength} bytes`);
+          break;
+        case 'Progress':
+          downloaded += event.data.chunkLength;
+          console.log(`downloaded ${downloaded} from ${contentLength}`);
+          break;
+        case 'Finished':
+          console.log('download finished');
+          break;
+      }
+    });
+  
+    console.log('update installed');
+    // await relaunch();
+  }
+  console.log('no updates')
+}
 </script>
 
 <template>
-  <main class="container">
+  <main class="container-t">
     <h1>Welcome to Tauri + Vue</h1>
 
-    <div class="row">
+    <div class="row-t">
       <a href="https://vite.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
+        <img src="/vite.svg" class="logo-t vite" alt="Vite logo" />
       </a>
       <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
+        <img src="/tauri.svg" class="logo-t tauri" alt="Tauri logo" />
       </a>
       <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
+        <img src="./assets/vue.svg" class="logo-t vue" alt="Vue logo" />
       </a>
     </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
+    <p>Click on the Tauri, Vite, and Vue logo-ts to learn more.</p>
 
-    <form class="row" @submit.prevent="greet">
+    <form class="pb-3 row-t" @submit.prevent="greet">
       <input id="greet-input" v-model="name" placeholder="Enter a name..." />
       <button type="submit">Greet</button>
+    </form>
+    <form class="row-t" @submit.prevent="check_update">
+      <button type="submit">Check</button>
     </form>
     <p>{{ greetMsg }}</p>
   </main>
 </template>
 
 <style scoped>
-.logo.vite:hover {
+.logo-t.vite:hover {
   filter: drop-shadow(0 0 2em #747bff);
 }
 
-.logo.vue:hover {
+.logo-t.vue:hover {
   filter: drop-shadow(0 0 2em #249b73);
 }
 
@@ -63,7 +99,7 @@ async function greet() {
   -webkit-text-size-adjust: 100%;
 }
 
-.container {
+.container-t {
   margin: 0;
   padding-top: 10vh;
   display: flex;
@@ -72,18 +108,18 @@ async function greet() {
   text-align: center;
 }
 
-.logo {
+.logo-t {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: 0.75s;
 }
 
-.logo.tauri:hover {
+.logo-t.tauri:hover {
   filter: drop-shadow(0 0 2em #24c8db);
 }
 
-.row {
+.row-t {
   display: flex;
   justify-content: center;
 }
@@ -137,7 +173,7 @@ button {
   margin-right: 5px;
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     color: #f6f6f6;
     background-color: #2f2f2f;
@@ -155,6 +191,6 @@ button {
   button:active {
     background-color: #0f0f0f69;
   }
-}
+} */
 
 </style>
